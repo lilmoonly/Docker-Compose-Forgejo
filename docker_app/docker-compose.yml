@@ -1,0 +1,75 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: forgejo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${FORGEJO_DB_USER}
+      POSTGRES_PASSWORD: ${FORGEJO_DB_PASS}
+      POSTGRES_DB: ${FORGEJO_DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${FORGEJO_DB_USER} -d ${FORGEJO_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - forgejo-network
+
+  forgejo:
+    build:
+      context: .
+      ssh: [default]
+    container_name: forgejo
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - FORGEJO_APP_NAME=${FORGEJO_APP_NAME}
+      - FORGEJO_HTTP_PORT=${FORGEJO_HTTP_PORT}
+      - FORGEJO_ROOT_URL=${FORGEJO_ROOT_URL}
+      - FORGEJO_DOMAIN=${FORGEJO_DOMAIN}
+      - FORGEJO_SSH_DOMAIN=${FORGEJO_SSH_DOMAIN}
+      - FORGEJO_DB_TYPE=postgres
+      - FORGEJO_DB_HOST=${FORGEJO_DB_HOST}
+      - FORGEJO_DB_NAME=${FORGEJO_DB_NAME}
+      - FORGEJO_DB_USER=${FORGEJO_DB_USER}
+      - FORGEJO_DB_PASS=${FORGEJO_DB_PASS}
+      - FORGEJO_DB_PORT=${FORGEJO_DB_PORT}
+      - FORGEJO_SECRET_KEY=${FORGEJO_SECRET_KEY}
+    ports:
+      - "3000:3000"
+    volumes:
+      - forgejo_data:/home/forgejo/app
+    networks:
+      - forgejo-network
+
+  db-init:
+    image: postgres:latest
+    container_name: forgejo-db-init
+    restart: on-failure
+    depends_on:
+      forgejo:
+        condition: service_started
+    volumes:
+      - /home/vagrant/docker_app/postgres/config/init-forgejo-user.sh:/init-forgejo-user.sh
+    environment:
+      FORGEJO_DB_HOST: ${FORGEJO_DB_HOST}
+      FORGEJO_DB_NAME: ${FORGEJO_DB_NAME}
+      FORGEJO_DB_USER: ${FORGEJO_DB_USER}
+      FORGEJO_DB_PASS: ${FORGEJO_DB_PASS}
+    entrypoint: ["/bin/bash", "/init-forgejo-user.sh"]
+    networks:
+      - forgejo-network
+
+networks:
+  forgejo-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  forgejo_data:
