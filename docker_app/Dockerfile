@@ -29,9 +29,9 @@ RUN mkdir -p /root/.ssh && chmod 0700 /root/.ssh && \
 RUN rm -rf /home/forgejo/app
 
 # Cloning source code
-#RUN --mount=type=ssh git clone --depth=1 git@github.com:lilmoonly/Forgejo-Docker-Kubernetes.git /home/forgejo/app
+RUN --mount=type=ssh git clone --depth=1 git@github.com:lilmoonly/Forgejo-Docker-Kubernetes.git /home/forgejo/app
 
-RUN git clone --depth=1 https://codeberg.org/forgejo/forgejo.git /home/forgejo/app
+#RUN git clone --depth=1 https://codeberg.org/forgejo/forgejo.git /home/forgejo/app
 
 # Build Forgejo
 RUN cd /home/forgejo/app && make build
